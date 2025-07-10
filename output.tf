@@ -21,3 +21,7 @@ output "private_subnet_id" {
 output "web_nsg_id" {
   value = azurerm_network_security_group.web_nsg.id
 }
+
+output "load_balancer_public_ip" {
+  value = azurerm_public_ip.lb_public_ip.ip_address
+}
