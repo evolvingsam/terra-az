@@ -14,6 +14,7 @@ jobs:
   terraform:
     name: Terraform Format, Validate, Plan & Apply
     runs-on: ubuntu-latest
+    
 
     steps:
     - name: Checkout Code
@@ -43,7 +44,26 @@ jobs:
 
     - name: Terraform Plan
       run: terraform plan -out=tfplan
+      
+    - name: Notify Slack - Plan
+      if: success() && github.event_name == 'pull_request'
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data '{
+          "text": "✅ Terraform Plan succeeded on PR: ${{ github.head_ref }}\nRepo: ${{ github.repository }}\nBy: ${{ github.actor }}"
+        }' \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
+
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main'
       run: terraform apply -auto-approve tfplan
+
+    - name: Notify Slack - Apply
+      if: success() && github.ref == 'refs/heads/main'
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data '{
+          "text": "🚀 Terraform Apply completed on *main* branch!\nRepo: ${{ github.repository }}\nBy: ${{ github.actor }}"
+        }' \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
