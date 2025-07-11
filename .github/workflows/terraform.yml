@@ -1,0 +1,49 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform:
+    name: Terraform Format, Validate, Plan & Apply
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.6
+
+    - name: Terraform Format
+      run: terraform fmt -check
+
+    - name: Terraform Init
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_CREDENTIALS }}
+      run: |
+        echo '${{ secrets.AZURE_CREDENTIALS }}' > azure.json
+        export ARM_CLIENT_ID=$(jq -r .clientId azure.json)
+        export ARM_CLIENT_SECRET=$(jq -r .clientSecret azure.json)
+        export ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId azure.json)
+        export ARM_TENANT_ID=$(jq -r .tenantId azure.json)
+        terraform init
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      run: terraform plan -out=tfplan
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve tfplan
